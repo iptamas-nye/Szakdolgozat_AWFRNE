@@ -15,23 +15,25 @@ private:
     Ui::Szakdolgozat_AWFRNEClass ui;
     QCustomPlot* customPlot;
     QCPItemText* textItem;
-    double minAddedX;                    // min x value of added points
-    double maxAddedX;                    // max x value of added points
-    double minAddedY;                    // min y value of added points
-    double maxAddedY;                    // max y value of added points
     QVector<qreal> addedPointsX;
     QVector<qreal> addedPointsY;
     QVector<qreal> calculatedPointsX;
     QVector<qreal> calculatedPointsY;
     double f_interpolate(double);
-    void run();
     void labelMessage(QString, int);
+    double minAddedPointsX();
+    double minAddedPointsY();
+    double maxAddedPointsX();
+    double maxAddedPointsY();
+    void run();
     
 private slots:
     void slot_initInterpolation();
     void slot_addPoint();
     void slot_interpolate();
-    void slot_onMouseMove(QMouseEvent* event);
     void slot_showCoordiantes();
     void slot_pointSelected();
+    void slot_onMouseMove(QMouseEvent* event);
+    void slot_onWheel(QWheelEvent* event);
+
 };

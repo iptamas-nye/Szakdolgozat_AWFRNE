@@ -11,10 +11,6 @@
 Szakdolgozat_AWFRNE::Szakdolgozat_AWFRNE(QWidget *parent) : 
     calculatedPointsX(INTERPOLATION_STEPS),
     calculatedPointsY(INTERPOLATION_STEPS),
-    minAddedX(std::numeric_limits<double>::max()),
-    maxAddedX(std::numeric_limits<double>::min()),
-    minAddedY(std::numeric_limits<double>::max()),
-    maxAddedY(std::numeric_limits<double>::min()),
     QMainWindow(parent)
 {
     ui.setupUi(this);
@@ -47,26 +43,17 @@ void Szakdolgozat_AWFRNE::run()
     ui.customPlot->yAxis->setLabel("y");
     ui.customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
 
-    connect(ui.actionNew, &QAction::triggered, this, &Szakdolgozat_AWFRNE::slot_initInterpolation);
-    connect(ui.customPlot, &QCustomPlot::mouseMove, this, &Szakdolgozat_AWFRNE::slot_onMouseMove);
+    connect(ui.actionNew, &QAction::triggered, this, &Szakdolgozat_AWFRNE::slot_initInterpolation);  
     connect(ui.pushButtonAddPoint, &QPushButton::clicked, this, &Szakdolgozat_AWFRNE::slot_addPoint);
     connect(ui.pushButtonInterpolation, &QPushButton::clicked, this, &Szakdolgozat_AWFRNE::slot_interpolate);
     connect(ui.checkBoxShowCoords, &QCheckBox::stateChanged, this, &Szakdolgozat_AWFRNE::slot_showCoordiantes);
     connect(ui.customPlot, &QCustomPlot::selectionChangedByUser, this, &Szakdolgozat_AWFRNE::slot_pointSelected);
-}
-
-void Szakdolgozat_AWFRNE::labelMessage(QString message, int error)
-{
-    ui.labelMessage->setText(message);
-    ui.labelMessage->setStyleSheet(error ? "color: green;" : "color: red;");
+    connect(ui.customPlot, &QCustomPlot::mouseMove, this, &Szakdolgozat_AWFRNE::slot_onMouseMove);
+    connect(ui.customPlot, &QCustomPlot::mouseWheel, this, &Szakdolgozat_AWFRNE::slot_onWheel);
 }
 
 void Szakdolgozat_AWFRNE::slot_initInterpolation()
 {
-    minAddedX = std::numeric_limits<double>::max();
-    maxAddedX = std::numeric_limits<double>::min();
-    minAddedY = std::numeric_limits<double>::max();
-    maxAddedY = std::numeric_limits<double>::min();
     addedPointsX.clear();
     addedPointsY.clear();
     ui.customPlot->graph(ADDEDPOINTS)->setVisible(false);
@@ -94,19 +81,18 @@ void Szakdolgozat_AWFRNE::slot_addPoint()
         labelMessage("Error! X coordinate already added!", ERROR);
         return;
     }
-
     addedPointsX.append(lineEditXDouble);
     addedPointsY.append(lineEditYDouble);
-    if (addedPointsX.back() < minAddedX) minAddedX = addedPointsX.back();
-    if (addedPointsX.back() > maxAddedX) maxAddedX = addedPointsX.back();
-    if (addedPointsY.back() < minAddedY) minAddedY = addedPointsY.back();
-    if (addedPointsY.back() > maxAddedY) maxAddedY = addedPointsY.back();
     ui.customPlot->graph(ADDEDPOINTS)->setVisible(true);
     ui.customPlot->graph(ADDEDPOINTS)->setData(addedPointsX, addedPointsY);
+    auto minAddedX = minAddedPointsX();
+    auto maxAddedX = maxAddedPointsX();
+    auto minAddedY = minAddedPointsY();
+    auto maxAddedY = maxAddedPointsY();
     if (addedPointsX.size() == 1)
     {
-        ui.customPlot->xAxis->setRange(minAddedX - 1, minAddedX + 1);
-        ui.customPlot->yAxis->setRange(minAddedY - 1, minAddedY + 1);
+        ui.customPlot->xAxis->setRange(minAddedX-2, minAddedX+2);
+        ui.customPlot->yAxis->setRange(minAddedY-2, maxAddedY+2);
     }
     else
     {
@@ -122,8 +108,8 @@ double Szakdolgozat_AWFRNE::f_interpolate(double x)
     auto nofPoints = addedPointsX.size();
     if (nofPoints == 1) return addedPointsY.at(0);
     double result = 0; // Initialize result 
-    double minToInterpolate = minAddedX;
-    double maxToInterpolate = maxAddedX;
+    double minToInterpolate = minAddedPointsX();
+    double maxToInterpolate = maxAddedPointsX();
     for (auto i = 0; i < nofPoints; i++)
     {
         double term = addedPointsY.at(i);
@@ -139,36 +125,36 @@ double Szakdolgozat_AWFRNE::f_interpolate(double x)
 
 void Szakdolgozat_AWFRNE::slot_interpolate()
 {
-    double minToInterpolate = (addedPointsX.size() == 1) ? ui.customPlot->xAxis->range().lower : minAddedX;
-    double maxToInterpolate = (addedPointsX.size() == 1) ? ui.customPlot->xAxis->range().upper : maxAddedX;
-    double step = (maxToInterpolate - minToInterpolate) / INTERPOLATION_STEPS;
-
-    for (auto ip = 0; ip < INTERPOLATION_STEPS; ip++)  //elements of calculatedPointsX and Y
+    double minToInterpolate = (addedPointsX.size() == 1) ? ui.customPlot->xAxis->range().lower : minAddedPointsX();
+    double maxToInterpolate = (addedPointsX.size() == 1) ? ui.customPlot->xAxis->range().upper : maxAddedPointsX();
+    double step = (maxToInterpolate - minToInterpolate) / (INTERPOLATION_STEPS-1);
+    auto maxCalculatedPointsY = std::numeric_limits<double>::min();
+    auto minCalculatedPointsY = std::numeric_limits<double>::max();
+    for (auto i = 0; i < INTERPOLATION_STEPS-1; i++)  //elements of calculatedPointsX and Y
     {
-        calculatedPointsX[ip] = minToInterpolate + ip * step;
-        calculatedPointsY[ip] = f_interpolate(calculatedPointsX[ip]);
+        calculatedPointsX[i] = minToInterpolate + i * step;
+        calculatedPointsY[i] = f_interpolate(calculatedPointsX.at(i));
+        if (calculatedPointsY.at(i) > maxCalculatedPointsY) maxCalculatedPointsY = calculatedPointsY.at(i);
+        if (calculatedPointsY.at(i) < minCalculatedPointsY) minCalculatedPointsY = calculatedPointsY.at(i);
     }
+    calculatedPointsX.back() = minToInterpolate + (INTERPOLATION_STEPS) * step;
+    calculatedPointsY.back() = f_interpolate(calculatedPointsX.back());
+    if (calculatedPointsY.back() > maxCalculatedPointsY) maxCalculatedPointsY = calculatedPointsY.back();
+    if (calculatedPointsY.back() < minCalculatedPointsY) minCalculatedPointsY = calculatedPointsY.back();
+
     ui.customPlot->graph(INTERPOLATION)->setVisible(true);
     ui.customPlot->graph(INTERPOLATION)->setData(calculatedPointsX, calculatedPointsY);
     ui.customPlot->graph(INTERPOLATION)->rescaleAxes();
-    ui.customPlot->yAxis->setRange(minAddedY, maxAddedY);
+    if (addedPointsX.size() == 1)
+    {
+        ui.customPlot->yAxis->setRange(minCalculatedPointsY + 2, maxCalculatedPointsY - 2);
+    }
+    else
+    {
+        ui.customPlot->yAxis->setRange(minCalculatedPointsY, maxCalculatedPointsY);
+    }
     ui.customPlot->replot();      
     labelMessage("Successful interpolation!", SUCCESS);
-}
-
-void Szakdolgozat_AWFRNE::slot_onMouseMove(QMouseEvent* event)
-{
-    double x = ui.customPlot->xAxis->pixelToCoord(event->pos().x());
-    double y = ui.customPlot->yAxis->pixelToCoord(event->pos().y());
-    statusBar()->showMessage(QString("%1, %2").arg(x).arg(y));
-    if (textItem->visible())
-    {
-        textItem->setText(QString("%1, %2").arg(x).arg(y));
-        textItem->position->setCoords(QPointF(x, y));
-        textItem->setFont(QFont(font().family(), 10));
-        ui.customPlot->replot();
-    }
-    
 }
 
 void Szakdolgozat_AWFRNE::slot_showCoordiantes()
@@ -195,3 +181,76 @@ void Szakdolgozat_AWFRNE::slot_pointSelected()
         }
     }
 }
+
+void Szakdolgozat_AWFRNE::slot_onMouseMove(QMouseEvent* event)
+{
+    double x = ui.customPlot->xAxis->pixelToCoord(event->pos().x());
+    double y = ui.customPlot->yAxis->pixelToCoord(event->pos().y());
+    statusBar()->showMessage(QString("%1, %2").arg(x).arg(y));
+    if (textItem->visible())
+    {
+        textItem->setText(QString("%1, %2").arg(x).arg(y));
+        textItem->position->setCoords(QPointF(x, y));
+        textItem->setFont(QFont(font().family(), 10));
+        ui.customPlot->replot();
+    }
+
+}
+
+void Szakdolgozat_AWFRNE::slot_onWheel(QWheelEvent* event)
+{
+    qDebug() << "wheelEvent";
+}
+
+
+void Szakdolgozat_AWFRNE::labelMessage(QString message, int error)
+{
+    ui.labelMessage->setText(message);
+    ui.labelMessage->setStyleSheet(error ? "color: green;" : "color: red;");
+}
+
+double Szakdolgozat_AWFRNE::minAddedPointsX()
+{
+    if (addedPointsX.isEmpty()) return std::numeric_limits<double>::max();
+    auto minX = std::numeric_limits<double>::max();
+    for (auto i : addedPointsX)
+    {
+        if (i < minX) minX = i;
+    }
+    return minX;
+}
+
+double Szakdolgozat_AWFRNE::minAddedPointsY()
+{
+    if (addedPointsY.isEmpty()) return std::numeric_limits<double>::max();
+    auto minY = std::numeric_limits<double>::max();
+    for (auto i : addedPointsY)
+    {
+        if (i < minY) minY = i;
+    }
+    return minY;
+}
+
+double Szakdolgozat_AWFRNE::maxAddedPointsX()
+{
+    if (addedPointsX.isEmpty()) return std::numeric_limits<double>::min();
+    auto maxX = std::numeric_limits<double>::min();
+    for (auto i : addedPointsX)
+    {
+        if (i > maxX) maxX = i;
+    }
+    return maxX;
+}
+
+double Szakdolgozat_AWFRNE::maxAddedPointsY()
+{
+    if (addedPointsY.isEmpty()) return std::numeric_limits<double>::min();
+    auto maxY = std::numeric_limits<double>::min();
+    for (auto i : addedPointsY)
+    {
+        if (i > maxY) maxY = i;
+    }
+    return maxY;
+}
+
+
