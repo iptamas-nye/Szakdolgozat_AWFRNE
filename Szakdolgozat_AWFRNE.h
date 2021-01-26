@@ -35,5 +35,6 @@ private slots:
     void slot_pointSelected();
     void slot_onMouseMove(QMouseEvent* event);
     void slot_onWheel(QWheelEvent* event);
+    void slot_buttonClicked(QMouseEvent* event);
 
 };

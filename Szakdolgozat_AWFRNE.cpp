@@ -50,6 +50,7 @@ void Szakdolgozat_AWFRNE::run()
     connect(ui.customPlot, &QCustomPlot::selectionChangedByUser, this, &Szakdolgozat_AWFRNE::slot_pointSelected);
     connect(ui.customPlot, &QCustomPlot::mouseMove, this, &Szakdolgozat_AWFRNE::slot_onMouseMove);
     connect(ui.customPlot, &QCustomPlot::mouseWheel, this, &Szakdolgozat_AWFRNE::slot_onWheel);
+    connect(ui.customPlot, &QCustomPlot::mousePress, this, &Szakdolgozat_AWFRNE::slot_buttonClicked);
 }
 
 void Szakdolgozat_AWFRNE::slot_initInterpolation()
@@ -127,7 +128,7 @@ void Szakdolgozat_AWFRNE::slot_interpolate()
 {
     double minToInterpolate = (addedPointsX.size() == 1) ? ui.customPlot->xAxis->range().lower : minAddedPointsX();
     double maxToInterpolate = (addedPointsX.size() == 1) ? ui.customPlot->xAxis->range().upper : maxAddedPointsX();
-    double step = (maxToInterpolate - minToInterpolate) / (INTERPOLATION_STEPS-1);
+    double step = (maxToInterpolate - minToInterpolate) / (INTERPOLATION_STEPS);
     auto maxCalculatedPointsY = std::numeric_limits<double>::min();
     auto minCalculatedPointsY = std::numeric_limits<double>::max();
     for (auto i = 0; i < INTERPOLATION_STEPS-1; i++)  //elements of calculatedPointsX and Y
@@ -137,7 +138,7 @@ void Szakdolgozat_AWFRNE::slot_interpolate()
         if (calculatedPointsY.at(i) > maxCalculatedPointsY) maxCalculatedPointsY = calculatedPointsY.at(i);
         if (calculatedPointsY.at(i) < minCalculatedPointsY) minCalculatedPointsY = calculatedPointsY.at(i);
     }
-    calculatedPointsX.back() = minToInterpolate + (INTERPOLATION_STEPS) * step;
+    calculatedPointsX.back() = minToInterpolate + INTERPOLATION_STEPS * step;
     calculatedPointsY.back() = f_interpolate(calculatedPointsX.back());
     if (calculatedPointsY.back() > maxCalculatedPointsY) maxCalculatedPointsY = calculatedPointsY.back();
     if (calculatedPointsY.back() < minCalculatedPointsY) minCalculatedPointsY = calculatedPointsY.back();
@@ -168,14 +169,11 @@ void Szakdolgozat_AWFRNE::slot_pointSelected()
     auto graph = ui.customPlot->graph(ADDEDPOINTS);
     auto selection = graph->selection();
     foreach(QCPDataRange dataRange, selection.dataRanges())
-    {
-        //QCPGraphDataContainer::const_iterator begin = graph->data()->at(dataRange.begin()); // get range begin iterator from index
-        //QCPGraphDataContainer::const_iterator end = graph->data()->at(dataRange.end()); // get range end iterator from index
+    {     
         auto begin = graph->data()->at(dataRange.begin()); // get range begin iterator from index
         auto end = graph->data()->at(dataRange.end()); // get range end iterator from index
         for (QCPGraphDataContainer::const_iterator it = begin; it != end; ++it)
         {
-            // iterator "it" will go through all selected data points, as an example, we calculate the value average
             qDebug() << it->key;
             qDebug() << it->value;
         }
@@ -195,6 +193,49 @@ void Szakdolgozat_AWFRNE::slot_onMouseMove(QMouseEvent* event)
         ui.customPlot->replot();
     }
 
+}
+
+void Szakdolgozat_AWFRNE::slot_buttonClicked(QMouseEvent* event)
+{
+
+    if (event->button() == Qt::RightButton)
+    {
+        auto graph = ui.customPlot->graph(ADDEDPOINTS);
+        auto selection = graph->selection();
+        double xToDelete, yToDelete;
+        bool toDelete = false;
+        foreach(QCPDataRange dataRange, selection.dataRanges())
+        {
+            auto begin = graph->data()->at(dataRange.begin()); // get range begin iterator from index
+            auto end = graph->data()->at(dataRange.end()); // get range end iterator from index
+            
+            for (QCPGraphDataContainer::const_iterator it = begin; it != end; ++it)
+            {
+                xToDelete = it->key;
+                yToDelete = it->value;
+                toDelete = true;
+            }
+        }
+        if (toDelete && !addedPointsX.empty())
+        {
+            for (auto i = 0; i < addedPointsX.size(); i++)
+            {
+                if (addedPointsX.at(i) == xToDelete && addedPointsY.at(i) == yToDelete)
+                {
+                    QMessageBox::StandardButton reply;
+                    reply = QMessageBox::question(this, "Warning!", "Would you like to delete this point?",
+                        QMessageBox::Yes | QMessageBox::No);
+                    if (reply == QMessageBox::Yes) {
+                        ui.customPlot->graph(INTERPOLATION)->setVisible(false);
+                        ui.customPlot->graph(ADDEDPOINTS)->data()->remove(addedPointsX.at(i));
+                        addedPointsX.remove(i);
+                        addedPointsY.remove(i);
+                        ui.customPlot->replot();
+                    }              
+                }
+            }            
+        }
+    }
 }
 
 void Szakdolgozat_AWFRNE::slot_onWheel(QWheelEvent* event)
