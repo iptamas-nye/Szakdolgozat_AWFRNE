@@ -154,7 +154,7 @@
         <string>Y:</string>
        </property>
       </widget>
-      <widget class="QCheckBox" name="checkBoxShowCoords">
+      <widget class="QCheckBox" name="checkBoxShowDerivative">
        <property name="geometry">
         <rect>
          <x>10</x>
@@ -164,7 +164,7 @@
         </rect>
        </property>
        <property name="text">
-        <string>Show coordinates over cursor</string>
+        <string>Show derivatives</string>
        </property>
       </widget>
      </widget>

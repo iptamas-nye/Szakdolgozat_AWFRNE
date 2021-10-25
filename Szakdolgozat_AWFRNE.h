@@ -19,7 +19,11 @@ private:
     QVector<qreal> addedPointsY;
     QVector<qreal> calculatedPointsX;
     QVector<qreal> calculatedPointsY;
+    QVector<qreal> derivativePointsX;
+    QVector<qreal> derivativePointsY;
     double f_interpolate(double);
+    double calculateDerivative(double, double);
+    void drawDerivative(double, double, double);
     void labelMessage(QString, int);
     double minAddedPointsX();
     double minAddedPointsY();
@@ -31,7 +35,6 @@ private slots:
     void slot_initInterpolation();
     void slot_addPoint();
     void slot_interpolate();
-    void slot_showCoordiantes();
     void slot_pointSelected();
     void slot_onMouseMove(QMouseEvent* event);
     void slot_onWheel(QWheelEvent* event);

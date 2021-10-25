@@ -5,6 +5,7 @@
 #define SUCCESS 1
 #define INTERPOLATION 0
 #define ADDEDPOINTS 1
+#define DERIVATIVES 2
 #define INTERPOLATION_STEPS 200
 
 
@@ -39,6 +40,11 @@ void Szakdolgozat_AWFRNE::run()
     ui.customPlot->graph(ADDEDPOINTS)->setLineStyle(QCPGraph::lsNone);
     ui.customPlot->graph(ADDEDPOINTS)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 5));
     ui.customPlot->graph(ADDEDPOINTS)->setPen(QPen(Qt::blue));
+    ui.customPlot->addGraph();
+    ui.customPlot->graph(DERIVATIVES)->setSelectable(QCP::SelectionType::stNone);
+    ui.customPlot->graph(DERIVATIVES)->setLineStyle(QCPGraph::lsLine);
+    ui.customPlot->graph(DERIVATIVES)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssNone, 0));
+    ui.customPlot->graph(DERIVATIVES)->setPen(QPen(Qt::green));
     ui.customPlot->xAxis->setLabel("x");
     ui.customPlot->yAxis->setLabel("y");
     ui.customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
@@ -46,7 +52,6 @@ void Szakdolgozat_AWFRNE::run()
     connect(ui.actionNew, &QAction::triggered, this, &Szakdolgozat_AWFRNE::slot_initInterpolation);  
     connect(ui.pushButtonAddPoint, &QPushButton::clicked, this, &Szakdolgozat_AWFRNE::slot_addPoint);
     connect(ui.pushButtonInterpolation, &QPushButton::clicked, this, &Szakdolgozat_AWFRNE::slot_interpolate);
-    connect(ui.checkBoxShowCoords, &QCheckBox::stateChanged, this, &Szakdolgozat_AWFRNE::slot_showCoordiantes);
     connect(ui.customPlot, &QCustomPlot::selectionChangedByUser, this, &Szakdolgozat_AWFRNE::slot_pointSelected);
     connect(ui.customPlot, &QCustomPlot::mouseMove, this, &Szakdolgozat_AWFRNE::slot_onMouseMove);
     connect(ui.customPlot, &QCustomPlot::mouseWheel, this, &Szakdolgozat_AWFRNE::slot_onWheel);
@@ -104,6 +109,14 @@ void Szakdolgozat_AWFRNE::slot_addPoint()
     labelMessage("Point added successfully!", SUCCESS);
 }
 
+void Szakdolgozat_AWFRNE::drawDerivative(double x, double y, double der)
+{
+    derivativePointsX.append(1); derivativePointsX.append(2);
+    derivativePointsY.append(1); derivativePointsY.append(2);
+    ui.customPlot->graph(DERIVATIVES)->setData(derivativePointsX, derivativePointsY);
+    //ui.customPlot->graph(DERIVATIVES)->rescaleAxes();
+}
+
 double Szakdolgozat_AWFRNE::f_interpolate(double x)
 { 
     auto nofPoints = addedPointsX.size();
@@ -122,6 +135,11 @@ double Szakdolgozat_AWFRNE::f_interpolate(double x)
         result += term;
     }   
     return result;
+}
+
+double Szakdolgozat_AWFRNE::calculateDerivative(double, double)
+{
+    return 1.0;
 }
 
 void Szakdolgozat_AWFRNE::slot_interpolate()
@@ -158,12 +176,6 @@ void Szakdolgozat_AWFRNE::slot_interpolate()
     labelMessage("Successful interpolation!", SUCCESS);
 }
 
-void Szakdolgozat_AWFRNE::slot_showCoordiantes()
-{
-    textItem->setVisible(ui.checkBoxShowCoords->isChecked());
-    ui.customPlot->replot();
-}
-
 void Szakdolgozat_AWFRNE::slot_pointSelected()
 {
     auto graph = ui.customPlot->graph(ADDEDPOINTS);
@@ -182,14 +194,27 @@ void Szakdolgozat_AWFRNE::slot_pointSelected()
 
 void Szakdolgozat_AWFRNE::slot_onMouseMove(QMouseEvent* event)
 {
+    if (!ui.checkBoxShowDerivative->isChecked())
+    {
+        return;
+    }
     double x = ui.customPlot->xAxis->pixelToCoord(event->pos().x());
     double y = ui.customPlot->yAxis->pixelToCoord(event->pos().y());
     statusBar()->showMessage(QString("%1, %2").arg(x).arg(y));
-    if (textItem->visible())
+    if ((y > f_interpolate(x)-0.01) && (y < f_interpolate(x) + 0.01))
     {
         textItem->setText(QString("%1, %2").arg(x).arg(y));
         textItem->position->setCoords(QPointF(x, y));
         textItem->setFont(QFont(font().family(), 10));
+        textItem->setVisible(true);
+        ui.customPlot->graph(DERIVATIVES)->setVisible(true);
+        drawDerivative(x, y, calculateDerivative(x, y));
+        ui.customPlot->replot();
+    }
+    else 
+    {
+        textItem->setVisible(false);
+        ui.customPlot->graph(DERIVATIVES)->setVisible(false);
         ui.customPlot->replot();
     }
 
