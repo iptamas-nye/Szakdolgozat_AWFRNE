@@ -22,7 +22,7 @@ private:
     QVector<qreal> derivativePointsX;
     QVector<qreal> derivativePointsY;
     double f_interpolate(double);
-    double calculateDerivative(double, double);
+    double calculateDerivative(double);
     void drawDerivative(double, double, double);
     void labelMessage(QString, int);
     double minAddedPointsX();

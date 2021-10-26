@@ -48,6 +48,8 @@ void Szakdolgozat_AWFRNE::run()
     ui.customPlot->xAxis->setLabel("x");
     ui.customPlot->yAxis->setLabel("y");
     ui.customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
+    derivativePointsX.append(0); derivativePointsX.append(0);
+    derivativePointsY.append(0); derivativePointsY.append(0);
 
     connect(ui.actionNew, &QAction::triggered, this, &Szakdolgozat_AWFRNE::slot_initInterpolation);  
     connect(ui.pushButtonAddPoint, &QPushButton::clicked, this, &Szakdolgozat_AWFRNE::slot_addPoint);
@@ -111,10 +113,12 @@ void Szakdolgozat_AWFRNE::slot_addPoint()
 
 void Szakdolgozat_AWFRNE::drawDerivative(double x, double y, double der)
 {
-    derivativePointsX.append(1); derivativePointsX.append(2);
-    derivativePointsY.append(1); derivativePointsY.append(2);
+    double half = (maxAddedPointsX() - minAddedPointsX()) / 4;
+    double xMin = x - half, xMax = x + half;
+    double yMin = y - half*der, yMax = y + half*der;
+    derivativePointsX[0] = xMin; derivativePointsX[1] = xMax;
+    derivativePointsY[0] = yMin; derivativePointsY[1] = yMax;
     ui.customPlot->graph(DERIVATIVES)->setData(derivativePointsX, derivativePointsY);
-    //ui.customPlot->graph(DERIVATIVES)->rescaleAxes();
 }
 
 double Szakdolgozat_AWFRNE::f_interpolate(double x)
@@ -137,9 +141,14 @@ double Szakdolgozat_AWFRNE::f_interpolate(double x)
     return result;
 }
 
-double Szakdolgozat_AWFRNE::calculateDerivative(double, double)
+double Szakdolgozat_AWFRNE::calculateDerivative(double x0)
 {
-    return 1.0;
+    const double epszilon = 1.0e-6; 
+    double x1 = x0 - epszilon;
+    double x2 = x0 + epszilon;
+    double y1 = f_interpolate(x1);
+    double y2 = f_interpolate(x2);
+    return (y2 - y1) / (x2 - x1);
 }
 
 void Szakdolgozat_AWFRNE::slot_interpolate()
@@ -200,15 +209,17 @@ void Szakdolgozat_AWFRNE::slot_onMouseMove(QMouseEvent* event)
     }
     double x = ui.customPlot->xAxis->pixelToCoord(event->pos().x());
     double y = ui.customPlot->yAxis->pixelToCoord(event->pos().y());
+    double derivative = calculateDerivative(x);
     statusBar()->showMessage(QString("%1, %2").arg(x).arg(y));
-    if ((y > f_interpolate(x)-0.01) && (y < f_interpolate(x) + 0.01))
+    double buffer = (maxAddedPointsY() - minAddedPointsY()) / 200;
+    if ((y > f_interpolate(x) - buffer) && (y < f_interpolate(x) + buffer))
     {
-        textItem->setText(QString("%1, %2").arg(x).arg(y));
+        textItem->setText(QString("%1").arg(derivative));
         textItem->position->setCoords(QPointF(x, y));
         textItem->setFont(QFont(font().family(), 10));
         textItem->setVisible(true);
         ui.customPlot->graph(DERIVATIVES)->setVisible(true);
-        drawDerivative(x, y, calculateDerivative(x, y));
+        drawDerivative(x, y, derivative);
         ui.customPlot->replot();
     }
     else 
