@@ -4443,14 +4443,14 @@ class QCP_LIB_DECL QCPColorGradient
   Q_GADGET
 public:
   /*!
-    Defines the color spaces in which color interpolation between gradient stops can be performed.
+    Defines the color spaces in which color LAGRANGE between gradient stops can be performed.
     
-    \see setColorInterpolation
+    \see setColorLAGRANGE
   */
-  enum ColorInterpolation { ciRGB  ///< Color channels red, green and blue are linearly interpolated
+  enum ColorLAGRANGE { ciRGB  ///< Color channels red, green and blue are linearly interpolated
                             ,ciHSV ///< Color channels hue, saturation and value are linearly interpolated (The hue is interpolated over the shortest angle distance)
                           };
-  Q_ENUMS(ColorInterpolation)
+  Q_ENUMS(ColorLAGRANGE)
   
   /*!
     Defines the available presets that can be loaded with \ref loadPreset. See the documentation
@@ -4479,14 +4479,14 @@ public:
   // getters:
   int levelCount() const { return mLevelCount; }
   QMap<double, QColor> colorStops() const { return mColorStops; }
-  ColorInterpolation colorInterpolation() const { return mColorInterpolation; }
+  ColorLAGRANGE colorLAGRANGE() const { return mColorLAGRANGE; }
   bool periodic() const { return mPeriodic; }
   
   // setters:
   void setLevelCount(int n);
   void setColorStops(const QMap<double, QColor> &colorStops);
   void setColorStopAt(double position, const QColor &color);
-  void setColorInterpolation(ColorInterpolation interpolation);
+  void setColorLAGRANGE(ColorLAGRANGE LAGRANGE);
   void setPeriodic(bool enabled);
   
   // non-property methods:
@@ -4501,7 +4501,7 @@ protected:
   // property members:
   int mLevelCount;
   QMap<double, QColor> mColorStops;
-  ColorInterpolation mColorInterpolation;
+  ColorLAGRANGE mColorLAGRANGE;
   bool mPeriodic;
   
   // non-property members:
@@ -4512,7 +4512,7 @@ protected:
   bool stopsUseAlpha() const;
   void updateColorBuffer();
 };
-Q_DECLARE_METATYPE(QCPColorGradient::ColorInterpolation)
+Q_DECLARE_METATYPE(QCPColorGradient::ColorLAGRANGE)
 Q_DECLARE_METATYPE(QCPColorGradient::GradientPreset)
 
 /* end of 'src/colorgradient.h' */

@@ -17,14 +17,17 @@ private:
     QCPItemText* textItem;
     QVector<qreal> addedPointsX;
     QVector<qreal> addedPointsY;
-    QVector<qreal> calculatedPointsX;
-    QVector<qreal> calculatedPointsY;
+    QVector<qreal> lagrangePointsX;
+    QVector<qreal> lagrangePointsY;
     QVector<qreal> derivativePointsX;
     QVector<qreal> derivativePointsY;
-    double f_interpolate(double);
+    QVector<qreal> hermiteDerivatives;
+    double lagrange_interpolate(double);
+    double hermite_interpolate(double);
     double calculateDerivative(double);
     void drawDerivative(double, double, double);
     void labelMessage(QString, int);
+    void checkZoomLimit();
     double minAddedPointsX();
     double minAddedPointsY();
     double maxAddedPointsX();
@@ -35,6 +38,7 @@ private slots:
     void slot_initInterpolation();
     void slot_addPoint();
     void slot_interpolate();
+    void slot_rangeChanged(QCPRange);
     void slot_pointSelected();
     void slot_onMouseMove(QMouseEvent* event);
     void slot_onWheel(QWheelEvent* event);

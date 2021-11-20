@@ -15760,7 +15760,7 @@ void QCustomPlot::toPainter(QCPPainter *painter, int width, int height)
   QCPColorMap and QCPColorScale have \ref QCPColorMap::setGradient "setGradient" methods which
   take an instance of this class. Colors are set with \ref setColorStopAt(double position, const QColor &color)
   with a \a position from 0 to 1. In between these defined color positions, the
-  color will be interpolated linearly either in RGB or HSV space, see \ref setColorInterpolation.
+  color will be interpolated linearly either in RGB or HSV space, see \ref setColorLAGRANGE.
 
   Alternatively, load one of the preset color gradients shown in the image below, with \ref
   loadPreset, or by directly specifying the preset in the constructor.
@@ -15789,7 +15789,7 @@ void QCustomPlot::toPainter(QCPPainter *painter, int width, int height)
 */
 QCPColorGradient::QCPColorGradient() :
   mLevelCount(350),
-  mColorInterpolation(ciRGB),
+  mColorLAGRANGE(ciRGB),
   mPeriodic(false),
   mColorBufferInvalidated(true)
 {
@@ -15797,14 +15797,14 @@ QCPColorGradient::QCPColorGradient() :
 }
 
 /*!
-  Constructs a new QCPColorGradient initialized with the colors and color interpolation according
+  Constructs a new QCPColorGradient initialized with the colors and color LAGRANGE according
   to \a preset.
 
   The color level count is initialized to 350.
 */
 QCPColorGradient::QCPColorGradient(GradientPreset preset) :
   mLevelCount(350),
-  mColorInterpolation(ciRGB),
+  mColorLAGRANGE(ciRGB),
   mPeriodic(false),
   mColorBufferInvalidated(true)
 {
@@ -15816,7 +15816,7 @@ QCPColorGradient::QCPColorGradient(GradientPreset preset) :
 bool QCPColorGradient::operator==(const QCPColorGradient &other) const
 {
   return ((other.mLevelCount == this->mLevelCount) &&
-          (other.mColorInterpolation == this->mColorInterpolation) &&
+          (other.mColorLAGRANGE == this->mColorLAGRANGE) &&
           (other.mPeriodic == this->mPeriodic) &&
           (other.mColorStops == this->mColorStops));
 }
@@ -15844,7 +15844,7 @@ void QCPColorGradient::setLevelCount(int n)
 /*!
   Sets at which positions from 0 to 1 which color shall occur. The positions are the keys, the
   colors are the values of the passed QMap \a colorStops. In between these color stops, the color
-  is interpolated according to \ref setColorInterpolation.
+  is interpolated according to \ref setColorLAGRANGE.
   
   A more convenient way to create a custom gradient may be to clear all color stops with \ref
   clearColorStops (or creating a new, empty QCPColorGradient) and then adding them one by one with
@@ -15860,7 +15860,7 @@ void QCPColorGradient::setColorStops(const QMap<double, QColor> &colorStops)
 
 /*!
   Sets the \a color the gradient will have at the specified \a position (from 0 to 1). In between
-  these color stops, the color is interpolated according to \ref setColorInterpolation.
+  these color stops, the color is interpolated according to \ref setColorLAGRANGE.
   
   \see setColorStops, clearColorStops
 */
@@ -15877,11 +15877,11 @@ void QCPColorGradient::setColorStopAt(double position, const QColor &color)
   For example, a sweep in RGB space from red to green will have a muddy brown intermediate color,
   whereas in HSV space the intermediate color is yellow.
 */
-void QCPColorGradient::setColorInterpolation(QCPColorGradient::ColorInterpolation interpolation)
+void QCPColorGradient::setColorLAGRANGE(QCPColorGradient::ColorLAGRANGE LAGRANGE)
 {
-  if (interpolation != mColorInterpolation)
+  if (LAGRANGE != mColorLAGRANGE)
   {
-    mColorInterpolation = interpolation;
+    mColorLAGRANGE = LAGRANGE;
     mColorBufferInvalidated = true;
   }
 }
@@ -16140,7 +16140,7 @@ QRgb QCPColorGradient::color(double position, const QCPRange &range, bool logari
 
 /*!
   Clears the current color stops and loads the specified \a preset. A preset consists of predefined
-  color stops and the corresponding color interpolation method.
+  color stops and the corresponding color LAGRANGE method.
   
   The available presets are:
   \image html QCPColorGradient.png
@@ -16151,12 +16151,12 @@ void QCPColorGradient::loadPreset(GradientPreset preset)
   switch (preset)
   {
     case gpGrayscale:
-      setColorInterpolation(ciRGB);
+      setColorLAGRANGE(ciRGB);
       setColorStopAt(0, Qt::black);
       setColorStopAt(1, Qt::white);
       break;
     case gpHot:
-      setColorInterpolation(ciRGB);
+      setColorLAGRANGE(ciRGB);
       setColorStopAt(0, QColor(50, 0, 0));
       setColorStopAt(0.2, QColor(180, 10, 0));
       setColorStopAt(0.4, QColor(245, 50, 0));
@@ -16165,7 +16165,7 @@ void QCPColorGradient::loadPreset(GradientPreset preset)
       setColorStopAt(1, QColor(255, 255, 255));
       break;
     case gpCold:
-      setColorInterpolation(ciRGB);
+      setColorLAGRANGE(ciRGB);
       setColorStopAt(0, QColor(0, 0, 50));
       setColorStopAt(0.2, QColor(0, 10, 180));
       setColorStopAt(0.4, QColor(0, 50, 245));
@@ -16174,17 +16174,17 @@ void QCPColorGradient::loadPreset(GradientPreset preset)
       setColorStopAt(1, QColor(255, 255, 255));
       break;
     case gpNight:
-      setColorInterpolation(ciHSV);
+      setColorLAGRANGE(ciHSV);
       setColorStopAt(0, QColor(10, 20, 30));
       setColorStopAt(1, QColor(250, 255, 250));
       break;
     case gpCandy:
-      setColorInterpolation(ciHSV);
+      setColorLAGRANGE(ciHSV);
       setColorStopAt(0, QColor(0, 0, 255));
       setColorStopAt(1, QColor(255, 250, 250));
       break;
     case gpGeography:
-      setColorInterpolation(ciRGB);
+      setColorLAGRANGE(ciRGB);
       setColorStopAt(0, QColor(70, 170, 210));
       setColorStopAt(0.20, QColor(90, 160, 180));
       setColorStopAt(0.25, QColor(45, 130, 175));
@@ -16196,14 +16196,14 @@ void QCPColorGradient::loadPreset(GradientPreset preset)
       setColorStopAt(1, QColor(210, 210, 230));
       break;
     case gpIon:
-      setColorInterpolation(ciHSV);
+      setColorLAGRANGE(ciHSV);
       setColorStopAt(0, QColor(50, 10, 10));
       setColorStopAt(0.45, QColor(0, 0, 255));
       setColorStopAt(0.8, QColor(0, 255, 255));
       setColorStopAt(1, QColor(0, 255, 0));
       break;
     case gpThermal:
-      setColorInterpolation(ciRGB);
+      setColorLAGRANGE(ciRGB);
       setColorStopAt(0, QColor(0, 0, 50));
       setColorStopAt(0.15, QColor(20, 0, 120));
       setColorStopAt(0.33, QColor(200, 30, 140));
@@ -16212,7 +16212,7 @@ void QCPColorGradient::loadPreset(GradientPreset preset)
       setColorStopAt(1, QColor(255, 255, 255));
       break;
     case gpPolar:
-      setColorInterpolation(ciRGB);
+      setColorLAGRANGE(ciRGB);
       setColorStopAt(0, QColor(50, 255, 255));
       setColorStopAt(0.18, QColor(10, 70, 255));
       setColorStopAt(0.28, QColor(10, 10, 190));
@@ -16222,7 +16222,7 @@ void QCPColorGradient::loadPreset(GradientPreset preset)
       setColorStopAt(1, QColor(255, 255, 50));
       break;
     case gpSpectrum:
-      setColorInterpolation(ciHSV);
+      setColorLAGRANGE(ciHSV);
       setColorStopAt(0, QColor(50, 0, 50));
       setColorStopAt(0.15, QColor(0, 0, 255));
       setColorStopAt(0.35, QColor(0, 255, 255));
@@ -16231,7 +16231,7 @@ void QCPColorGradient::loadPreset(GradientPreset preset)
       setColorStopAt(1, QColor(50, 0, 0));
       break;
     case gpJet:
-      setColorInterpolation(ciRGB);
+      setColorLAGRANGE(ciRGB);
       setColorStopAt(0, QColor(0, 0, 100));
       setColorStopAt(0.15, QColor(0, 50, 255));
       setColorStopAt(0.35, QColor(0, 255, 255));
@@ -16240,7 +16240,7 @@ void QCPColorGradient::loadPreset(GradientPreset preset)
       setColorStopAt(1, QColor(100, 0, 0));
       break;
     case gpHues:
-      setColorInterpolation(ciHSV);
+      setColorLAGRANGE(ciHSV);
       setColorStopAt(0, QColor(255, 0, 0));
       setColorStopAt(1.0/3.0, QColor(0, 0, 255));
       setColorStopAt(2.0/3.0, QColor(0, 255, 0));
@@ -16293,7 +16293,7 @@ bool QCPColorGradient::stopsUseAlpha() const
 /*! \internal
   
   Updates the internal color buffer which will be used by \ref colorize and \ref color, to quickly
-  convert positions to colors. This is where the interpolation between color stops is calculated.
+  convert positions to colors. This is where the LAGRANGE between color stops is calculated.
 */
 void QCPColorGradient::updateColorBuffer()
 {
@@ -16329,8 +16329,8 @@ void QCPColorGradient::updateColorBuffer()
       {
         QMap<double, QColor>::const_iterator high = it;
         QMap<double, QColor>::const_iterator low = it-1;
-        double t = (position-low.key())/(high.key()-low.key()); // interpolation factor 0..1
-        switch (mColorInterpolation)
+        double t = (position-low.key())/(high.key()-low.key()); // LAGRANGE factor 0..1
+        switch (mColorLAGRANGE)
         {
           case ciRGB:
           {
@@ -21482,8 +21482,8 @@ const QPolygonF QCPGraph::getChannelFillPolygon(const QVector<QPointF> *thisData
     const int lowBound = findIndexBelowX(croppedData, staticData->first().x());
     if (lowBound == -1) return QPolygonF(); // key ranges have no overlap
     croppedData->remove(0, lowBound);
-    // set lowest point of cropped data to fit exactly key position of first static data point via linear interpolation:
-    if (croppedData->size() < 2) return QPolygonF(); // need at least two points for interpolation
+    // set lowest point of cropped data to fit exactly key position of first static data point via linear LAGRANGE:
+    if (croppedData->size() < 2) return QPolygonF(); // need at least two points for LAGRANGE
     double slope;
     if (!qFuzzyCompare(croppedData->at(1).x(), croppedData->at(0).x()))
       slope = (croppedData->at(1).y()-croppedData->at(0).y())/(croppedData->at(1).x()-croppedData->at(0).x());
@@ -21498,8 +21498,8 @@ const QPolygonF QCPGraph::getChannelFillPolygon(const QVector<QPointF> *thisData
     int highBound = findIndexAboveX(croppedData, staticData->last().x());
     if (highBound == -1) return QPolygonF(); // key ranges have no overlap
     croppedData->remove(highBound+1, croppedData->size()-(highBound+1));
-    // set highest point of cropped data to fit exactly key position of last static data point via linear interpolation:
-    if (croppedData->size() < 2) return QPolygonF(); // need at least two points for interpolation
+    // set highest point of cropped data to fit exactly key position of last static data point via linear LAGRANGE:
+    if (croppedData->size() < 2) return QPolygonF(); // need at least two points for LAGRANGE
     const int li = croppedData->size()-1; // last index
     if (!qFuzzyCompare(croppedData->at(li).x(), croppedData->at(li-1).x()))
       slope = (croppedData->at(li).y()-croppedData->at(li-1).y())/(croppedData->at(li).x()-croppedData->at(li-1).x());
@@ -21516,8 +21516,8 @@ const QPolygonF QCPGraph::getChannelFillPolygon(const QVector<QPointF> *thisData
     int lowBound = findIndexBelowY(croppedData, staticData->first().y());
     if (lowBound == -1) return QPolygonF(); // key ranges have no overlap
     croppedData->remove(0, lowBound);
-    // set lowest point of cropped data to fit exactly key position of first static data point via linear interpolation:
-    if (croppedData->size() < 2) return QPolygonF(); // need at least two points for interpolation
+    // set lowest point of cropped data to fit exactly key position of first static data point via linear LAGRANGE:
+    if (croppedData->size() < 2) return QPolygonF(); // need at least two points for LAGRANGE
     double slope;
     if (!qFuzzyCompare(croppedData->at(1).y(), croppedData->at(0).y())) // avoid division by zero in step plots
       slope = (croppedData->at(1).x()-croppedData->at(0).x())/(croppedData->at(1).y()-croppedData->at(0).y());
@@ -21532,8 +21532,8 @@ const QPolygonF QCPGraph::getChannelFillPolygon(const QVector<QPointF> *thisData
     int highBound = findIndexAboveY(croppedData, staticData->last().y());
     if (highBound == -1) return QPolygonF(); // key ranges have no overlap
     croppedData->remove(highBound+1, croppedData->size()-(highBound+1));
-    // set highest point of cropped data to fit exactly key position of last static data point via linear interpolation:
-    if (croppedData->size() < 2) return QPolygonF(); // need at least two points for interpolation
+    // set highest point of cropped data to fit exactly key position of last static data point via linear LAGRANGE:
+    if (croppedData->size() < 2) return QPolygonF(); // need at least two points for LAGRANGE
     int li = croppedData->size()-1; // last index
     if (!qFuzzyCompare(croppedData->at(li).y(), croppedData->at(li-1).y())) // avoid division by zero in step plots
       slope = (croppedData->at(li).x()-croppedData->at(li-1).x())/(croppedData->at(li).y()-croppedData->at(li-1).y());
@@ -22520,7 +22520,7 @@ int QCPCurve::getRegion(double key, double value, double keyMin, double valueMax
 */
 QPointF QCPCurve::getOptimizedPoint(int otherRegion, double otherKey, double otherValue, double key, double value, double keyMin, double valueMax, double keyMax, double valueMin) const
 {
-  // The intersection point interpolation here is done in pixel coordinates, so we don't need to
+  // The intersection point LAGRANGE here is done in pixel coordinates, so we don't need to
   // differentiate between different axis scale types. Note that the nomenclature
   // top/left/bottom/right/min/max is with respect to the rect in plot coordinates, wich may be
   // different in pixel coordinates (horz/vert key axes, reversed ranges)
@@ -22903,7 +22903,7 @@ bool QCPCurve::mayTraverse(int prevRegion, int currentRegion) const
 */
 bool QCPCurve::getTraverse(double prevKey, double prevValue, double key, double value, double keyMin, double valueMax, double keyMax, double valueMin, QPointF &crossA, QPointF &crossB) const
 {
-  // The intersection point interpolation here is done in pixel coordinates, so we don't need to
+  // The intersection point LAGRANGE here is done in pixel coordinates, so we don't need to
   // differentiate between different axis scale types. Note that the nomenclature
   // top/left/bottom/right/min/max is with respect to the rect in plot coordinates, wich may be
   // different in pixel coordinates (horz/vert key axes, reversed ranges)
@@ -25750,10 +25750,10 @@ void QCPColorMap::setGradient(const QCPColorGradient &gradient)
 }
 
 /*!
-  Sets whether the color map image shall use bicubic interpolation when displaying the color map
+  Sets whether the color map image shall use bicubic LAGRANGE when displaying the color map
   shrinked or expanded, and not at a 1:1 pixel-to-data scale.
   
-  \image html QCPColorMap-interpolate.png "A 10*10 color map, with interpolation and without interpolation enabled"
+  \image html QCPColorMap-interpolate.png "A 10*10 color map, with LAGRANGE and without LAGRANGE enabled"
 */
 void QCPColorMap::setInterpolate(bool enabled)
 {
@@ -25970,8 +25970,8 @@ void QCPColorMap::updateMapImage()
   const QImage::Format format = QImage::Format_ARGB32_Premultiplied;
   const int keySize = mMapData->keySize();
   const int valueSize = mMapData->valueSize();
-  int keyOversamplingFactor = mInterpolate ? 1 : (int)(1.0+100.0/(double)keySize); // make mMapImage have at least size 100, factor becomes 1 if size > 200 or interpolation is on
-  int valueOversamplingFactor = mInterpolate ? 1 : (int)(1.0+100.0/(double)valueSize); // make mMapImage have at least size 100, factor becomes 1 if size > 200 or interpolation is on
+  int keyOversamplingFactor = mInterpolate ? 1 : (int)(1.0+100.0/(double)keySize); // make mMapImage have at least size 100, factor becomes 1 if size > 200 or LAGRANGE is on
+  int valueOversamplingFactor = mInterpolate ? 1 : (int)(1.0+100.0/(double)valueSize); // make mMapImage have at least size 100, factor becomes 1 if size > 200 or LAGRANGE is on
   
   // resize mMapImage to correct dimensions including possible oversampling factors, according to key/value axes orientation:
   if (keyAxis->orientation() == Qt::Horizontal && (mMapImage.width() != keySize*keyOversamplingFactor || mMapImage.height() != valueSize*valueOversamplingFactor))
