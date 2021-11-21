@@ -9,11 +9,14 @@
 #define DERIVATIVES 3
 #define INTERPOLATION_STEPS 200
 #define MAX_ADDED_POINTS 5
+#define OMEGA 10
 
 
 Szakdolgozat_AWFRNE::Szakdolgozat_AWFRNE(QWidget *parent) : 
     lagrangePointsX(INTERPOLATION_STEPS),
     lagrangePointsY(INTERPOLATION_STEPS),
+    hermitePointsX(INTERPOLATION_STEPS),
+    hermitePointsY(INTERPOLATION_STEPS),
     QMainWindow(parent)
 {
     ui.setupUi(this);
@@ -31,6 +34,7 @@ void Szakdolgozat_AWFRNE::run()
     textItem->setVisible(false);
     ui.lineEditX->setValidator(new QRegExpValidator(QRegExp("[+-]?\\d*\\.?\\d+"), this));
     ui.lineEditY->setValidator(new QRegExpValidator(QRegExp("[+-]?\\d*\\.?\\d+"), this));
+    ui.lineEditDerivative->setValidator(new QRegExpValidator(QRegExp("[+-]?\\d*\\.?\\d+"), this));
 
     ui.customPlot->addGraph();
     ui.customPlot->graph(LAGRANGE)->setSelectable(QCP::SelectionType::stNone);
@@ -192,8 +196,6 @@ void Szakdolgozat_AWFRNE::slot_addPoint()
 void Szakdolgozat_AWFRNE::drawDerivative(double x, double y, double der)
 {
     double half = (ui.customPlot->xAxis->range().upper - ui.customPlot->xAxis->range().lower) / 4;
-    /*double xMin = x - half, xMax = x + half;
-    double yMin = y - half*der, yMax = y + half*der;*/
     double xMin = x - half, xMax = x + half;
     double yMin = y - half * der, yMax = y + half * der;
     derivativePointsX[0] = xMin; derivativePointsX[1] = xMax;
@@ -223,22 +225,55 @@ double Szakdolgozat_AWFRNE::lagrange_interpolate(double x)
 
 double Szakdolgozat_AWFRNE::hermite_interpolate(double x)
 {
+    hermiteDerivatives.append(1);
+    hermiteDerivatives.append(1);
+    hermiteDerivatives.append(1);
     auto nofPoints = addedPointsX.size();
     if (nofPoints == 1) return hermiteDerivatives.at(0);
+    double result, Li, h0=0, h1 = 0;
     for (auto i = 0; i < nofPoints; i++)
     {
-
+        Li = addedPointsY.at(i);
+        for (auto j = 0; j < nofPoints; j++)
+        {
+            if (j != i)
+                Li = Li * (x - addedPointsX.at(j)) / double(addedPointsX.at(i) - addedPointsX.at(j));
+        }
+        h0 += addedPointsY.at(i) * Li * Li * (1 - (x - addedPointsX.at(i)) * calculateDerivative(calculateDerivative(addedPointsX.at(i), OMEGA), OMEGA) / calculateDerivative(addedPointsX.at(i), OMEGA));
+        h1 += hermiteDerivatives.at(i) * Li * Li * (x - addedPointsX.at(i));
     }
-    return 0.0;
+    
+    return h0 + h1;
 }
 
-double Szakdolgozat_AWFRNE::calculateDerivative(double x0)
+double Szakdolgozat_AWFRNE::omega(double x)
+{
+    auto nofPoints = addedPointsX.size();
+    double om = 1.0;
+    for (auto i = 0; i < nofPoints; i++)
+    {
+        om *= (x - addedPointsX.at(i));
+    }
+    return om;
+}
+
+double Szakdolgozat_AWFRNE::calculateDerivative(double x0, int interpolationType)
 {
     const double epszilon = 1.0e-6; 
     double x1 = x0 - epszilon;
     double x2 = x0 + epszilon;
-    double y1 = lagrange_interpolate(x1);
-    double y2 = lagrange_interpolate(x2);
+    double y1 = 0.0, y2 = 0.0;
+    if (LAGRANGE == interpolationType)
+    {
+        y1 = lagrange_interpolate(x1);
+        y2 = lagrange_interpolate(x2);
+    }
+    else if (OMEGA == interpolationType)
+    {
+        y1 = omega(x1);
+        y2 = omega(x2);
+    }
+    
     return (y2 - y1) / (x2 - x1);
 }
 
@@ -249,22 +284,52 @@ void Szakdolgozat_AWFRNE::slot_interpolate()
     double step = (maxToInterpolate - minToInterpolate) / (INTERPOLATION_STEPS);
     auto maxInterpolationPointsY = std::numeric_limits<double>::min();
     auto minInterpolationPointsY = std::numeric_limits<double>::max();
-    for (auto i = 0; i < INTERPOLATION_STEPS-1; i++)  //elements of lagrangePointsX and Y
+    if (ui.checkBoxLagrange->isChecked()) 
     {
-        lagrangePointsX[i] = minToInterpolate + i * step;
-        lagrangePointsY[i] = lagrange_interpolate(lagrangePointsX.at(i));
-        if (lagrangePointsY.at(i) > maxInterpolationPointsY) maxInterpolationPointsY = lagrangePointsY.at(i);
-        if (lagrangePointsY.at(i) < minInterpolationPointsY) minInterpolationPointsY = lagrangePointsY.at(i);
-    }
-    lagrangePointsX.back() = minToInterpolate + INTERPOLATION_STEPS * step;
-    lagrangePointsY.back() = lagrange_interpolate(lagrangePointsX.back());
-    if (lagrangePointsY.back() > maxInterpolationPointsY) maxInterpolationPointsY = lagrangePointsY.back();
-    if (lagrangePointsY.back() < minInterpolationPointsY) minInterpolationPointsY = lagrangePointsY.back();
+        for (auto i = 0; i < INTERPOLATION_STEPS-1; i++)  //elements of lagrangePointsX and Y
+        {
+            lagrangePointsX[i] = minToInterpolate + i * step;
+            lagrangePointsY[i] = lagrange_interpolate(lagrangePointsX.at(i));
+            if (lagrangePointsY.at(i) > maxInterpolationPointsY) maxInterpolationPointsY = lagrangePointsY.at(i);
+            if (lagrangePointsY.at(i) < minInterpolationPointsY) minInterpolationPointsY = lagrangePointsY.at(i);
+        }
+        lagrangePointsX.back() = minToInterpolate + INTERPOLATION_STEPS * step;
+        lagrangePointsY.back() = lagrange_interpolate(lagrangePointsX.back());
+        if (lagrangePointsY.back() > maxInterpolationPointsY) maxInterpolationPointsY = lagrangePointsY.back();
+        if (lagrangePointsY.back() < minInterpolationPointsY) minInterpolationPointsY = lagrangePointsY.back();
 
-    ui.customPlot->graph(LAGRANGE)->setVisible(true);
-    ui.customPlot->graph(LAGRANGE)->setData(lagrangePointsX, lagrangePointsY);
-    ui.customPlot->graph(LAGRANGE)->rescaleAxes();
-    ui.customPlot->xAxis->blockSignals(true);  // block signals
+        ui.customPlot->graph(LAGRANGE)->setVisible(true);
+        ui.customPlot->graph(LAGRANGE)->setData(lagrangePointsX, lagrangePointsY);
+        ui.customPlot->graph(LAGRANGE)->rescaleAxes();
+        ui.customPlot->xAxis->blockSignals(true);  // block signals
+    }
+    else
+    {
+        ui.customPlot->graph(LAGRANGE)->setVisible(false);
+    }
+    if (ui.checkBoxHermite->isChecked())
+    {
+        for (auto i = 0; i < INTERPOLATION_STEPS - 1; i++)  //elements of hermitePointsX and Y
+        {
+            hermitePointsX[i] = minToInterpolate + i * step;
+            hermitePointsY[i] = hermite_interpolate(hermitePointsX.at(i));
+            if (hermitePointsY.at(i) > maxInterpolationPointsY) maxInterpolationPointsY = hermitePointsY.at(i);
+            if (hermitePointsY.at(i) < minInterpolationPointsY) minInterpolationPointsY = hermitePointsY.at(i);
+        }
+        hermitePointsX.back() = minToInterpolate + INTERPOLATION_STEPS * step;
+        hermitePointsY.back() = hermite_interpolate(hermitePointsX.back());
+        if (hermitePointsY.back() > maxInterpolationPointsY) maxInterpolationPointsY = hermitePointsY.back();
+        if (hermitePointsY.back() < minInterpolationPointsY) minInterpolationPointsY = hermitePointsY.back();
+
+        ui.customPlot->graph(HERMITE)->setVisible(true);
+        ui.customPlot->graph(HERMITE)->setData(hermitePointsX, hermitePointsY);
+        ui.customPlot->graph(HERMITE)->rescaleAxes();
+        ui.customPlot->xAxis->blockSignals(true);  // block signals
+    }
+    else 
+    {
+        ui.customPlot->graph(HERMITE)->setVisible(false);
+    }
     if (addedPointsX.size() == 1)
     {
         ui.customPlot->yAxis->setRange(minInterpolationPointsY + 2, maxInterpolationPointsY - 2);
@@ -281,6 +346,10 @@ void Szakdolgozat_AWFRNE::slot_interpolate()
 void Szakdolgozat_AWFRNE::slot_rangeChanged(QCPRange range)
 {
     if (ui.customPlot->graph(LAGRANGE)->visible())
+    {
+        slot_interpolate();
+    }
+    if (ui.customPlot->graph(HERMITE)->visible())
     {
         slot_interpolate();
     }
@@ -312,7 +381,7 @@ void Szakdolgozat_AWFRNE::slot_onMouseMove(QMouseEvent* event)
     {
         return;
     }
-    double derivative = calculateDerivative(x);  
+    double derivative = calculateDerivative(x, LAGRANGE);  
     double buffer = (maxAddedPointsY() - minAddedPointsY()) / 200;
     if (ui.customPlot->graph(LAGRANGE)->visible() && (y > lagrange_interpolate(x) - buffer) && (y < lagrange_interpolate(x) + buffer))
     {

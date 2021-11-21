@@ -19,12 +19,15 @@ private:
     QVector<qreal> addedPointsY;
     QVector<qreal> lagrangePointsX;
     QVector<qreal> lagrangePointsY;
+    QVector<qreal> hermitePointsX;
+    QVector<qreal> hermitePointsY;
     QVector<qreal> derivativePointsX;
     QVector<qreal> derivativePointsY;
     QVector<qreal> hermiteDerivatives;
     double lagrange_interpolate(double);
     double hermite_interpolate(double);
-    double calculateDerivative(double);
+    double omega(double);
+    double calculateDerivative(double, int);
     void drawDerivative(double, double, double);
     void labelMessage(QString, int);
     void checkZoomLimit();

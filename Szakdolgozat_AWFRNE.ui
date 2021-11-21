@@ -237,7 +237,7 @@
    </property>
    <widget class="QMenu" name="menuInterpolate">
     <property name="title">
-     <string>LAGRANGE</string>
+     <string>Interpolate</string>
     </property>
     <addaction name="actionNew"/>
    </widget>
