@@ -26,9 +26,10 @@ private:
     QVector<qreal> hermiteDerivatives;
     double lagrange_interpolate(double);
     double hermite_interpolate(double);
-    double omega(double);
-    double calculateDerivative(double, int);
+    double calculateDerivative(double);
     void drawDerivative(double, double, double);
+    double omegaDerivative(double);
+    double omegaSecondDerivative(double);
     void labelMessage(QString, int);
     void checkZoomLimit();
     double minAddedPointsX();

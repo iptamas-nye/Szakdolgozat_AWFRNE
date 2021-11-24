@@ -10,6 +10,7 @@
 #define INTERPOLATION_STEPS 200
 #define MAX_ADDED_POINTS 5
 #define OMEGA 10
+#define EMPTY_DERIVATIVE 654321
 
 
 Szakdolgozat_AWFRNE::Szakdolgozat_AWFRNE(QWidget *parent) : 
@@ -163,7 +164,16 @@ void Szakdolgozat_AWFRNE::slot_addPoint()
     }
     auto lineEditXDouble = ui.lineEditX->text().toDouble();
     auto lineEditYDouble = ui.lineEditY->text().toDouble();
-
+    double lineEditDerivative = 0.0;
+    if (ui.lineEditDerivative->text().isEmpty())
+    {
+        lineEditDerivative = double(EMPTY_DERIVATIVE);
+    }
+    else 
+    {
+        lineEditDerivative = ui.lineEditDerivative->text().toDouble();
+    }
+    
     if(addedPointsX.contains(lineEditXDouble))
     {
         labelMessage("Error! X coordinate already added!", ERROR);
@@ -171,6 +181,7 @@ void Szakdolgozat_AWFRNE::slot_addPoint()
     }
     addedPointsX.append(lineEditXDouble);
     addedPointsY.append(lineEditYDouble);
+    hermiteDerivatives.append(lineEditDerivative);
     ui.customPlot->graph(ADDEDPOINTS)->setVisible(true);
     ui.customPlot->graph(ADDEDPOINTS)->setData(addedPointsX, addedPointsY);
     auto minAddedX = minAddedPointsX();
@@ -203,77 +214,104 @@ void Szakdolgozat_AWFRNE::drawDerivative(double x, double y, double der)
     ui.customPlot->graph(DERIVATIVES)->setData(derivativePointsX, derivativePointsY);
 }
 
+double Szakdolgozat_AWFRNE::omegaDerivative(double x)
+{
+    auto size = addedPointsX.size();
+    if (2 == size)
+        return 2 * x - addedPointsX.at(0) - addedPointsX.at(1);
+    auto sum = 0.0, prod = 1.0;
+    for (auto i = 0; i < size; i++)
+    {
+        prod = 1;
+        for (auto j = 0; j < size; j++)
+        {
+            if (i != j)
+            {
+                prod *= (x - addedPointsX.at(j));
+            }
+        }
+        sum += prod;
+    }
+    return sum;
+}
+
+double Szakdolgozat_AWFRNE::omegaSecondDerivative(double x)
+{
+    auto size = addedPointsX.size();
+    if (2 == size)
+        return 2;
+    auto sum = 0.0, prod = 1.0;
+    for (auto i = 0; i < size - 1; i++)
+    {    
+        for (auto j = i + 1; j < size; j++)
+        {
+            prod = 1;
+            for (auto k = 0; k < size; k++)
+            {
+                if ((i != k) && (j != k))
+                {
+                    prod *= (x - addedPointsX.at(k));
+                }
+            }
+            sum += 2 * prod;
+        }
+        
+    }
+    return sum;
+}
+
 double Szakdolgozat_AWFRNE::lagrange_interpolate(double x)
 { 
     auto nofPoints = addedPointsX.size();
     if (nofPoints == 1) return addedPointsY.at(0);
     double result = 0; // Initialize result 
-    //double minToInterpolate = minAddedPointsX();
-    //double maxToInterpolate = maxAddedPointsX();
     for (auto i = 0; i < nofPoints; i++)
     {
-        double term = addedPointsY.at(i);
+        double Li = addedPointsY.at(i);
         for (auto j = 0; j < nofPoints; j++)
         {
             if (j != i)
-                term = term * (x - addedPointsX.at(j)) / double(addedPointsX.at(i) - addedPointsX.at(j));
+                Li = Li * (x - addedPointsX.at(j)) / double(addedPointsX.at(i) - addedPointsX.at(j));
         }
-        result += term;
+        result += Li;
     }   
     return result;
 }
 
 double Szakdolgozat_AWFRNE::hermite_interpolate(double x)
 {
-    hermiteDerivatives.append(1);
-    hermiteDerivatives.append(1);
-    hermiteDerivatives.append(1);
     auto nofPoints = addedPointsX.size();
     if (nofPoints == 1) return hermiteDerivatives.at(0);
     double result, Li, h0=0, h1 = 0;
     for (auto i = 0; i < nofPoints; i++)
     {
-        Li = addedPointsY.at(i);
+        Li = 1;
         for (auto j = 0; j < nofPoints; j++)
         {
             if (j != i)
                 Li = Li * (x - addedPointsX.at(j)) / double(addedPointsX.at(i) - addedPointsX.at(j));
         }
-        h0 += addedPointsY.at(i) * Li * Li * (1 - (x - addedPointsX.at(i)) * calculateDerivative(calculateDerivative(addedPointsX.at(i), OMEGA), OMEGA) / calculateDerivative(addedPointsX.at(i), OMEGA));
+        if (addedPointsX.at(0) == x || addedPointsX.at(1) == x || addedPointsX.at(2) == x)
+        {
+            qDebug() << "sorszám: " << i;
+            qDebug() << addedPointsY.at(i) * Li * Li * (1 - (x - addedPointsX.at(i)) * (omegaSecondDerivative(addedPointsX.at(i))) / omegaDerivative(addedPointsX.at(i)));
+            qDebug() << hermiteDerivatives.at(i) * Li * Li * (x - addedPointsX.at(i));
+        }
+        h0 += addedPointsY.at(i) * Li * Li * (1 - (x - addedPointsX.at(i)) * (omegaSecondDerivative(addedPointsX.at(i))) / omegaDerivative(addedPointsX.at(i)));
         h1 += hermiteDerivatives.at(i) * Li * Li * (x - addedPointsX.at(i));
     }
     
     return h0 + h1;
 }
 
-double Szakdolgozat_AWFRNE::omega(double x)
-{
-    auto nofPoints = addedPointsX.size();
-    double om = 1.0;
-    for (auto i = 0; i < nofPoints; i++)
-    {
-        om *= (x - addedPointsX.at(i));
-    }
-    return om;
-}
-
-double Szakdolgozat_AWFRNE::calculateDerivative(double x0, int interpolationType)
+double Szakdolgozat_AWFRNE::calculateDerivative(double x0)
 {
     const double epszilon = 1.0e-6; 
     double x1 = x0 - epszilon;
     double x2 = x0 + epszilon;
     double y1 = 0.0, y2 = 0.0;
-    if (LAGRANGE == interpolationType)
-    {
-        y1 = lagrange_interpolate(x1);
-        y2 = lagrange_interpolate(x2);
-    }
-    else if (OMEGA == interpolationType)
-    {
-        y1 = omega(x1);
-        y2 = omega(x2);
-    }
-    
+    y1 = lagrange_interpolate(x1);
+    y2 = lagrange_interpolate(x2);
     return (y2 - y1) / (x2 - x1);
 }
 
@@ -284,7 +322,7 @@ void Szakdolgozat_AWFRNE::slot_interpolate()
     double step = (maxToInterpolate - minToInterpolate) / (INTERPOLATION_STEPS);
     auto maxInterpolationPointsY = std::numeric_limits<double>::min();
     auto minInterpolationPointsY = std::numeric_limits<double>::max();
-    if (ui.checkBoxLagrange->isChecked()) 
+    if (ui.checkBoxLagrange->isChecked()) // ---------------- Lagrange -------------------------
     {
         for (auto i = 0; i < INTERPOLATION_STEPS-1; i++)  //elements of lagrangePointsX and Y
         {
@@ -301,35 +339,43 @@ void Szakdolgozat_AWFRNE::slot_interpolate()
         ui.customPlot->graph(LAGRANGE)->setVisible(true);
         ui.customPlot->graph(LAGRANGE)->setData(lagrangePointsX, lagrangePointsY);
         ui.customPlot->graph(LAGRANGE)->rescaleAxes();
-        ui.customPlot->xAxis->blockSignals(true);  // block signals
+        labelMessage("Successful interpolation", SUCCESS);
     }
     else
     {
         ui.customPlot->graph(LAGRANGE)->setVisible(false);
     }
-    if (ui.checkBoxHermite->isChecked())
+    if (ui.checkBoxHermite->isChecked())  // ---------------- Hermit -------------------------
     {
-        for (auto i = 0; i < INTERPOLATION_STEPS - 1; i++)  //elements of hermitePointsX and Y
+        if (hermiteDerivatives.contains(EMPTY_DERIVATIVE))
         {
-            hermitePointsX[i] = minToInterpolate + i * step;
-            hermitePointsY[i] = hermite_interpolate(hermitePointsX.at(i));
-            if (hermitePointsY.at(i) > maxInterpolationPointsY) maxInterpolationPointsY = hermitePointsY.at(i);
-            if (hermitePointsY.at(i) < minInterpolationPointsY) minInterpolationPointsY = hermitePointsY.at(i);
+            ui.customPlot->graph(HERMITE)->setVisible(false);
+            labelMessage("Hermite interpolation needs derivatives at all points!", ERROR);
         }
-        hermitePointsX.back() = minToInterpolate + INTERPOLATION_STEPS * step;
-        hermitePointsY.back() = hermite_interpolate(hermitePointsX.back());
-        if (hermitePointsY.back() > maxInterpolationPointsY) maxInterpolationPointsY = hermitePointsY.back();
-        if (hermitePointsY.back() < minInterpolationPointsY) minInterpolationPointsY = hermitePointsY.back();
+        else
+        {
+            for (auto i = 0; i < INTERPOLATION_STEPS - 1; i++)  //elements of hermitePointsX and Y
+            {
+                hermitePointsX[i] = minToInterpolate + i * step;
+                hermitePointsY[i] = hermite_interpolate(hermitePointsX.at(i));
+                if (hermitePointsY.at(i) > maxInterpolationPointsY) maxInterpolationPointsY = hermitePointsY.at(i);
+                if (hermitePointsY.at(i) < minInterpolationPointsY) minInterpolationPointsY = hermitePointsY.at(i);
+            }
+            hermitePointsX.back() = minToInterpolate + INTERPOLATION_STEPS * step;
+            hermitePointsY.back() = hermite_interpolate(hermitePointsX.back());
+            if (hermitePointsY.back() > maxInterpolationPointsY) maxInterpolationPointsY = hermitePointsY.back();
+            if (hermitePointsY.back() < minInterpolationPointsY) minInterpolationPointsY = hermitePointsY.back();
 
-        ui.customPlot->graph(HERMITE)->setVisible(true);
-        ui.customPlot->graph(HERMITE)->setData(hermitePointsX, hermitePointsY);
-        ui.customPlot->graph(HERMITE)->rescaleAxes();
-        ui.customPlot->xAxis->blockSignals(true);  // block signals
+            ui.customPlot->graph(HERMITE)->setVisible(true);
+            ui.customPlot->graph(HERMITE)->setData(hermitePointsX, hermitePointsY);
+            ui.customPlot->graph(HERMITE)->rescaleAxes();
+        } 
     }
     else 
     {
         ui.customPlot->graph(HERMITE)->setVisible(false);
     }
+    ui.customPlot->xAxis->blockSignals(true);  // block signals
     if (addedPointsX.size() == 1)
     {
         ui.customPlot->yAxis->setRange(minInterpolationPointsY + 2, maxInterpolationPointsY - 2);
@@ -339,8 +385,7 @@ void Szakdolgozat_AWFRNE::slot_interpolate()
         ui.customPlot->yAxis->setRange(minInterpolationPointsY, maxInterpolationPointsY);
     }
     ui.customPlot->xAxis->blockSignals(false);  // block signals
-    ui.customPlot->replot();      
-    labelMessage("Successful interpolation!", SUCCESS);
+    ui.customPlot->replot();
 }
 
 void Szakdolgozat_AWFRNE::slot_rangeChanged(QCPRange range)
@@ -381,7 +426,7 @@ void Szakdolgozat_AWFRNE::slot_onMouseMove(QMouseEvent* event)
     {
         return;
     }
-    double derivative = calculateDerivative(x, LAGRANGE);  
+    double derivative = calculateDerivative(x);  
     double buffer = (maxAddedPointsY() - minAddedPointsY()) / 200;
     if (ui.customPlot->graph(LAGRANGE)->visible() && (y > lagrange_interpolate(x) - buffer) && (y < lagrange_interpolate(x) + buffer))
     {
@@ -447,7 +492,7 @@ void Szakdolgozat_AWFRNE::slot_buttonClicked(QMouseEvent* event)
 
 void Szakdolgozat_AWFRNE::slot_onWheel(QWheelEvent* event)
 {
-    qDebug() << "wheelEvent";
+    //qDebug() << "wheelEvent";
 }
 
 
