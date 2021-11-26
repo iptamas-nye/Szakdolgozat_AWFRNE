@@ -8,8 +8,7 @@
 #define ADDEDPOINTS 2
 #define DERIVATIVES 3
 #define INTERPOLATION_STEPS 200
-#define MAX_ADDED_POINTS 5
-#define OMEGA 10
+#define MAX_ADDED_POINTS 10
 #define EMPTY_DERIVATIVE 654321
 
 
@@ -21,18 +20,16 @@ Szakdolgozat_AWFRNE::Szakdolgozat_AWFRNE(QWidget *parent) :
     QMainWindow(parent)
 {
     ui.setupUi(this);
-    textItem = new QCPItemText(ui.customPlot);
     run(); 
 }
 
 Szakdolgozat_AWFRNE::~Szakdolgozat_AWFRNE()
 {
-    //delete customPlot;
+    
 }
 
 void Szakdolgozat_AWFRNE::run()
 { 
-    textItem->setVisible(false);
     ui.lineEditX->setValidator(new QRegExpValidator(QRegExp("[+-]?\\d*\\.?\\d+"), this));
     ui.lineEditY->setValidator(new QRegExpValidator(QRegExp("[+-]?\\d*\\.?\\d+"), this));
     ui.lineEditDerivative->setValidator(new QRegExpValidator(QRegExp("[+-]?\\d*\\.?\\d+"), this));
@@ -52,23 +49,14 @@ void Szakdolgozat_AWFRNE::run()
     ui.customPlot->graph(ADDEDPOINTS)->setLineStyle(QCPGraph::lsNone);
     ui.customPlot->graph(ADDEDPOINTS)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 5));
     ui.customPlot->graph(ADDEDPOINTS)->setPen(QPen(Qt::blue));
-    ui.customPlot->addGraph();
-    ui.customPlot->graph(DERIVATIVES)->setSelectable(QCP::SelectionType::stNone);
-    ui.customPlot->graph(DERIVATIVES)->setLineStyle(QCPGraph::lsLine);
-    ui.customPlot->graph(DERIVATIVES)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssNone, 0));
-    ui.customPlot->graph(DERIVATIVES)->setPen(QPen(Qt::green));
     ui.customPlot->xAxis->setLabel("x");
     ui.customPlot->yAxis->setLabel("y");
     ui.customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
-    derivativePointsX.append(0); derivativePointsX.append(0);
-    derivativePointsY.append(0); derivativePointsY.append(0);
 
     connect(ui.actionNew, &QAction::triggered, this, &Szakdolgozat_AWFRNE::slot_initInterpolation);  
     connect(ui.pushButtonAddPoint, &QPushButton::clicked, this, &Szakdolgozat_AWFRNE::slot_addPoint);
     connect(ui.pushButtonInterpolate, &QPushButton::clicked, this, &Szakdolgozat_AWFRNE::slot_interpolate);
-    connect(ui.customPlot, &QCustomPlot::selectionChangedByUser, this, &Szakdolgozat_AWFRNE::slot_pointSelected);
     connect(ui.customPlot, &QCustomPlot::mouseMove, this, &Szakdolgozat_AWFRNE::slot_onMouseMove);
-    connect(ui.customPlot, &QCustomPlot::mouseWheel, this, &Szakdolgozat_AWFRNE::slot_onWheel);
     connect(ui.customPlot, &QCustomPlot::mousePress, this, &Szakdolgozat_AWFRNE::slot_buttonClicked);
     connect(ui.customPlot->xAxis, SIGNAL(rangeChanged(QCPRange)), this, SLOT(slot_rangeChanged(QCPRange)));
 }
@@ -147,6 +135,7 @@ void Szakdolgozat_AWFRNE::slot_initInterpolation()
     ui.labelMessage->setText("");
     ui.lineEditX->setText("");
     ui.lineEditY->setText("");
+    ui.lineEditDerivative->setText("");
     ui.customPlot->replot();
 }
 
@@ -202,16 +191,6 @@ void Szakdolgozat_AWFRNE::slot_addPoint()
     ui.customPlot->xAxis->blockSignals(false); // block signals
     ui.customPlot->replot();
     labelMessage("Point added successfully!", SUCCESS);
-}
-
-void Szakdolgozat_AWFRNE::drawDerivative(double x, double y, double der)
-{
-    double half = (ui.customPlot->xAxis->range().upper - ui.customPlot->xAxis->range().lower) / 4;
-    double xMin = x - half, xMax = x + half;
-    double yMin = y - half * der, yMax = y + half * der;
-    derivativePointsX[0] = xMin; derivativePointsX[1] = xMax;
-    derivativePointsY[0] = yMin; derivativePointsY[1] = yMax;
-    ui.customPlot->graph(DERIVATIVES)->setData(derivativePointsX, derivativePointsY);
 }
 
 double Szakdolgozat_AWFRNE::omegaDerivative(double x)
@@ -291,28 +270,11 @@ double Szakdolgozat_AWFRNE::hermite_interpolate(double x)
             if (j != i)
                 Li = Li * (x - addedPointsX.at(j)) / double(addedPointsX.at(i) - addedPointsX.at(j));
         }
-        if (addedPointsX.at(0) == x || addedPointsX.at(1) == x || addedPointsX.at(2) == x)
-        {
-            qDebug() << "sorszám: " << i;
-            qDebug() << addedPointsY.at(i) * Li * Li * (1 - (x - addedPointsX.at(i)) * (omegaSecondDerivative(addedPointsX.at(i))) / omegaDerivative(addedPointsX.at(i)));
-            qDebug() << hermiteDerivatives.at(i) * Li * Li * (x - addedPointsX.at(i));
-        }
         h0 += addedPointsY.at(i) * Li * Li * (1 - (x - addedPointsX.at(i)) * (omegaSecondDerivative(addedPointsX.at(i))) / omegaDerivative(addedPointsX.at(i)));
         h1 += hermiteDerivatives.at(i) * Li * Li * (x - addedPointsX.at(i));
     }
     
     return h0 + h1;
-}
-
-double Szakdolgozat_AWFRNE::calculateDerivative(double x0)
-{
-    const double epszilon = 1.0e-6; 
-    double x1 = x0 - epszilon;
-    double x2 = x0 + epszilon;
-    double y1 = 0.0, y2 = 0.0;
-    y1 = lagrange_interpolate(x1);
-    y2 = lagrange_interpolate(x2);
-    return (y2 - y1) / (x2 - x1);
 }
 
 void Szakdolgozat_AWFRNE::slot_interpolate()
@@ -369,6 +331,7 @@ void Szakdolgozat_AWFRNE::slot_interpolate()
             ui.customPlot->graph(HERMITE)->setVisible(true);
             ui.customPlot->graph(HERMITE)->setData(hermitePointsX, hermitePointsY);
             ui.customPlot->graph(HERMITE)->rescaleAxes();
+            labelMessage("Successful interpolation", SUCCESS);
         } 
     }
     else 
@@ -401,50 +364,12 @@ void Szakdolgozat_AWFRNE::slot_rangeChanged(QCPRange range)
     checkZoomLimit();
 }
 
-void Szakdolgozat_AWFRNE::slot_pointSelected()
-{
-    auto graph = ui.customPlot->graph(ADDEDPOINTS);
-    auto selection = graph->selection();
-    foreach(QCPDataRange dataRange, selection.dataRanges())
-    {     
-        auto begin = graph->data()->at(dataRange.begin()); // get range begin iterator from index
-        auto end = graph->data()->at(dataRange.end()); // get range end iterator from index
-        for (QCPGraphDataContainer::const_iterator it = begin; it != end; ++it)
-        {
-            qDebug() << it->key;
-            qDebug() << it->value;
-        }
-    }
-}
 
 void Szakdolgozat_AWFRNE::slot_onMouseMove(QMouseEvent* event)
 {
     double x = ui.customPlot->xAxis->pixelToCoord(event->pos().x());
     double y = ui.customPlot->yAxis->pixelToCoord(event->pos().y());
     statusBar()->showMessage(QString("%1, %2").arg(x).arg(y));
-    if (!ui.checkBoxShowDerivative->isChecked())
-    {
-        return;
-    }
-    double derivative = calculateDerivative(x);  
-    double buffer = (maxAddedPointsY() - minAddedPointsY()) / 200;
-    if (ui.customPlot->graph(LAGRANGE)->visible() && (y > lagrange_interpolate(x) - buffer) && (y < lagrange_interpolate(x) + buffer))
-    {
-        textItem->setText(QString("%1").arg(derivative));
-        textItem->position->setCoords(QPointF(x, y));
-        textItem->setFont(QFont(font().family(), 10));
-        textItem->setVisible(true);
-        ui.customPlot->graph(DERIVATIVES)->setVisible(true);
-        drawDerivative(x, y, derivative);
-        ui.customPlot->replot();
-    }
-    else 
-    {
-        textItem->setVisible(false);
-        ui.customPlot->graph(DERIVATIVES)->setVisible(false);
-        ui.customPlot->replot();
-    }
-
 }
 
 void Szakdolgozat_AWFRNE::slot_buttonClicked(QMouseEvent* event)
@@ -474,11 +399,13 @@ void Szakdolgozat_AWFRNE::slot_buttonClicked(QMouseEvent* event)
             {
                 if (addedPointsX.at(i) == xToDelete && addedPointsY.at(i) == yToDelete)
                 {
+                    QString message = QString::fromUtf8("Szeretné törölni a kijelölt pontot?");
                     QMessageBox::StandardButton reply;
-                    reply = QMessageBox::question(this, "Warning!", "Would you like to delete this point?",
+                    reply = QMessageBox::question(this, "Figyelem!", message,
                         QMessageBox::Yes | QMessageBox::No);
                     if (reply == QMessageBox::Yes) {
                         ui.customPlot->graph(LAGRANGE)->setVisible(false);
+                        ui.customPlot->graph(HERMITE)->setVisible(false);
                         ui.customPlot->graph(ADDEDPOINTS)->data()->remove(addedPointsX.at(i));
                         addedPointsX.remove(i);
                         addedPointsY.remove(i);
@@ -490,9 +417,5 @@ void Szakdolgozat_AWFRNE::slot_buttonClicked(QMouseEvent* event)
     }
 }
 
-void Szakdolgozat_AWFRNE::slot_onWheel(QWheelEvent* event)
-{
-    //qDebug() << "wheelEvent";
-}
 
 
