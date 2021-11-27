@@ -41,4 +41,5 @@ private slots:
     void slot_rangeChanged(QCPRange);
     void slot_onMouseMove(QMouseEvent* event);
     void slot_buttonClicked(QMouseEvent* event);
+    void slot_hermiteSelectionChanged();
 };

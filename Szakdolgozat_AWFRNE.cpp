@@ -1,4 +1,4 @@
-#include "Szakdolgozat_AWFRNE.h"
+﻿#include "Szakdolgozat_AWFRNE.h"
 #include "stdafx.h"
 
 #define ERROR 0
@@ -39,16 +39,19 @@ void Szakdolgozat_AWFRNE::run()
     ui.customPlot->graph(LAGRANGE)->setLineStyle(QCPGraph::lsLine);
     ui.customPlot->graph(LAGRANGE)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssNone, 0));
     ui.customPlot->graph(LAGRANGE)->setPen(QPen(Qt::red));
+    ui.customPlot->graph(LAGRANGE)->setVisible(false);
     ui.customPlot->addGraph();
     ui.customPlot->graph(HERMITE)->setSelectable(QCP::SelectionType::stNone);
     ui.customPlot->graph(HERMITE)->setLineStyle(QCPGraph::lsLine);
     ui.customPlot->graph(HERMITE)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssNone, 0));
     ui.customPlot->graph(HERMITE)->setPen(QPen(Qt::cyan));
+    ui.customPlot->graph(HERMITE)->setVisible(false);
     ui.customPlot->addGraph();
     ui.customPlot->graph(ADDEDPOINTS)->setSelectable(QCP::SelectionType::stSingleData);
     ui.customPlot->graph(ADDEDPOINTS)->setLineStyle(QCPGraph::lsNone);
     ui.customPlot->graph(ADDEDPOINTS)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, 5));
     ui.customPlot->graph(ADDEDPOINTS)->setPen(QPen(Qt::blue));
+    ui.customPlot->graph(ADDEDPOINTS)->setVisible(false);
     ui.customPlot->xAxis->setLabel("x");
     ui.customPlot->yAxis->setLabel("y");
     ui.customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
@@ -56,6 +59,7 @@ void Szakdolgozat_AWFRNE::run()
     connect(ui.actionNew, &QAction::triggered, this, &Szakdolgozat_AWFRNE::slot_initInterpolation);  
     connect(ui.pushButtonAddPoint, &QPushButton::clicked, this, &Szakdolgozat_AWFRNE::slot_addPoint);
     connect(ui.pushButtonInterpolate, &QPushButton::clicked, this, &Szakdolgozat_AWFRNE::slot_interpolate);
+    connect(ui.checkBoxHermite, &QCheckBox::clicked, this, &Szakdolgozat_AWFRNE::slot_hermiteSelectionChanged);
     connect(ui.customPlot, &QCustomPlot::mouseMove, this, &Szakdolgozat_AWFRNE::slot_onMouseMove);
     connect(ui.customPlot, &QCustomPlot::mousePress, this, &Szakdolgozat_AWFRNE::slot_buttonClicked);
     connect(ui.customPlot->xAxis, SIGNAL(rangeChanged(QCPRange)), this, SLOT(slot_rangeChanged(QCPRange)));
@@ -64,6 +68,7 @@ void Szakdolgozat_AWFRNE::run()
 
 void Szakdolgozat_AWFRNE::labelMessage(QString message, int error)
 {
+    qDebug() << message;
     ui.labelMessage->setText(message);
     ui.labelMessage->setStyleSheet(error ? "color: green;" : "color: red;");
 }
@@ -125,6 +130,7 @@ void Szakdolgozat_AWFRNE::slot_initInterpolation()
 {
     addedPointsX.clear();
     addedPointsY.clear();
+    hermiteDerivatives.clear();
     ui.customPlot->graph(ADDEDPOINTS)->setVisible(false);
     ui.customPlot->graph(LAGRANGE)->setVisible(false); 
     ui.customPlot->graph(HERMITE)->setVisible(false);
@@ -143,12 +149,12 @@ void Szakdolgozat_AWFRNE::slot_addPoint()
 {
     if (ui.lineEditX->text().isEmpty() || ui.lineEditY->text().isEmpty())
     {
-        labelMessage("Please add numbers!", ERROR);
+        labelMessage(QStringLiteral("Számokat kérek!"), ERROR);
         return;
     }
     if (addedPointsX.size() >= MAX_ADDED_POINTS)
     {
-        labelMessage("No more points allowed!", ERROR);
+        labelMessage(QStringLiteral("Több pont nem vehető fel!"), ERROR);
         return;
     }
     auto lineEditXDouble = ui.lineEditX->text().toDouble();
@@ -165,7 +171,7 @@ void Szakdolgozat_AWFRNE::slot_addPoint()
     
     if(addedPointsX.contains(lineEditXDouble))
     {
-        labelMessage("Error! X coordinate already added!", ERROR);
+        labelMessage(QStringLiteral("Hiba! Az X koordináta már rögzítve volt!"), ERROR);
         return;
     }
     addedPointsX.append(lineEditXDouble);
@@ -190,7 +196,7 @@ void Szakdolgozat_AWFRNE::slot_addPoint()
     }  
     ui.customPlot->xAxis->blockSignals(false); // block signals
     ui.customPlot->replot();
-    labelMessage("Point added successfully!", SUCCESS);
+    labelMessage(QStringLiteral("Új pont hozzáadva!"), SUCCESS);
 }
 
 double Szakdolgozat_AWFRNE::omegaDerivative(double x)
@@ -301,7 +307,7 @@ void Szakdolgozat_AWFRNE::slot_interpolate()
         ui.customPlot->graph(LAGRANGE)->setVisible(true);
         ui.customPlot->graph(LAGRANGE)->setData(lagrangePointsX, lagrangePointsY);
         ui.customPlot->graph(LAGRANGE)->rescaleAxes();
-        labelMessage("Successful interpolation", SUCCESS);
+        labelMessage(QStringLiteral("Sikeres interpoláció!"), SUCCESS);
     }
     else
     {
@@ -312,7 +318,7 @@ void Szakdolgozat_AWFRNE::slot_interpolate()
         if (hermiteDerivatives.contains(EMPTY_DERIVATIVE))
         {
             ui.customPlot->graph(HERMITE)->setVisible(false);
-            labelMessage("Hermite interpolation needs derivatives at all points!", ERROR);
+            labelMessage(QStringLiteral("Hermite interpolációhoz derivált!"), ERROR);
         }
         else
         {
@@ -331,7 +337,7 @@ void Szakdolgozat_AWFRNE::slot_interpolate()
             ui.customPlot->graph(HERMITE)->setVisible(true);
             ui.customPlot->graph(HERMITE)->setData(hermitePointsX, hermitePointsY);
             ui.customPlot->graph(HERMITE)->rescaleAxes();
-            labelMessage("Successful interpolation", SUCCESS);
+            labelMessage(QStringLiteral("Sikeres interpoláció!"), SUCCESS);
         } 
     }
     else 
@@ -372,6 +378,12 @@ void Szakdolgozat_AWFRNE::slot_onMouseMove(QMouseEvent* event)
     statusBar()->showMessage(QString("%1, %2").arg(x).arg(y));
 }
 
+void Szakdolgozat_AWFRNE::slot_hermiteSelectionChanged()
+{
+    ui.labelDerivative->setVisible(ui.checkBoxHermite->isChecked());
+    ui.lineEditDerivative->setVisible(ui.checkBoxHermite->isChecked());
+}
+
 void Szakdolgozat_AWFRNE::slot_buttonClicked(QMouseEvent* event)
 {
 
@@ -399,9 +411,9 @@ void Szakdolgozat_AWFRNE::slot_buttonClicked(QMouseEvent* event)
             {
                 if (addedPointsX.at(i) == xToDelete && addedPointsY.at(i) == yToDelete)
                 {
-                    QString message = QString::fromUtf8("Szeretn� t�r�lni a kijel�lt pontot?");
+                    QString message = QStringLiteral("Szeretné törölni a kijelölt pontot?");
                     QMessageBox::StandardButton reply;
-                    reply = QMessageBox::question(this, "Figyelem!", message,
+                    reply = QMessageBox::question(this, QStringLiteral("Figyelem!"), message,
                         QMessageBox::Yes | QMessageBox::No);
                     if (reply == QMessageBox::Yes) {
                         ui.customPlot->graph(LAGRANGE)->setVisible(false);
