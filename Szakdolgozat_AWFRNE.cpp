@@ -285,6 +285,7 @@ double Szakdolgozat_AWFRNE::hermite_interpolate(double x)
 
 void Szakdolgozat_AWFRNE::slot_interpolate()
 {
+    if (addedPointsX.isEmpty()) return;
     double minToInterpolate = ui.customPlot->xAxis->range().lower;
     double maxToInterpolate = ui.customPlot->xAxis->range().upper;
     double step = (maxToInterpolate - minToInterpolate) / (INTERPOLATION_STEPS);

@@ -203,7 +203,7 @@
         </rect>
        </property>
        <property name="text">
-        <string>Hermite</string>
+        <string>Fejér–Hermite</string>
        </property>
        <property name="checked">
         <bool>true</bool>
